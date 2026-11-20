@@ -1,0 +1,9 @@
+# 二进制资源：禁止 Git 做任何换行/编码转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

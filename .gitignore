@@ -1,0 +1,21 @@
+# ---- Cloudflare 构建产物（由 `cf build` / `cf deploy` 重新生成，勿提交） ----
+.cloudflare/
+
+# ---- Node / 工具链 ----
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# ---- 本地环境与密钥 ----
+.env
+.env.*
+!.env.example
+
+# ---- 操作系统 / 编辑器 ----
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
