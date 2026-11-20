@@ -62,11 +62,12 @@ C:\pixel-tps\
 ├── mobile-preview.png     # 手机横屏触控布局（README 引用）
 ├── fullscreen-preview.png # 开始页全屏引导（README 引用）
 ├── AGENTS.md              # 本文件
-├── .gitignore             # 忽略 .cloudflare/ 等生成物
+├── .gitignore             # 忽略 dist/、.cloudflare/ 等生成物
 └── .gitattributes         # 仅声明二进制资源，不做换行转换
 ```
 
-**受控生成物**：`.cloudflare/` 由 `cf build` 产出，已在 `.gitignore` 中，**永不提交**。
+**受控生成物**：`dist/`（发布暂存目录，见第 9 节）与 `.cloudflare/`（部署时生成的 Build Output）都已写入 `.gitignore`，**永不提交**。
+
 
 ---
 
@@ -178,15 +179,52 @@ SUNFALL.castWorldRay(...); SUNFALL.project(...)
 ```powershell
 cf --version                # 本机已验证：1.0.0-rc.2
 cf auth whoami              # 本机已验证：boiltask@qq.com（OAuth，token 有效）
-cf build                    # 产出 .cloudflare/（生成物，勿提交）
-cf deploy                   # 构建并发布
 ```
 
+### 正确流程：部署预构建目录（assets-only）
+
+本仓库**没有** `package.json`、没有构建链，属于纯静态资源项目。因此必须走 `cf deploy <目录>` 的 assets-only 路径：
+
+```powershell
+# 1) 只把要对外发布的文件放进 dist/（dist/ 已在 .gitignore 中）
+New-Item -ItemType Directory -Force dist | Out-Null
+Copy-Item index.html,preview.png,mobile-preview.png,fullscreen-preview.png dist -Force
+
+# 2) 先干跑，确认它识别为 assets-only 且文件数正确
+cf deploy dist --dry-run
+
+# 3) 正式部署
+cf deploy dist --message "简述本次变更"
+```
+
+> ⚠️ **不要直接跑 `cf build` 或裸 `cf deploy`**。已实测：在没有构建链时它会报
+> `No Cloudflare dev server is installed`，要求安装 `@cloudflare/vite-plugin` / `wrangler` 等。
+> 本项目的正确做法就是上面三步，不要为此引入 node 依赖。
+
+**发布范围**：只发布运行所需资产（`index.html` + 三张预览图）。`AGENTS.md`、`cloudflare.config.ts`、`.git/` 一律不对外暴露；`previews` 会被 README 引用，所以要一起发。
+
 - Worker 名：`pixel-tps-demo`
-- 绑定域名：`tps.page.boiltask.com`
+- 生产域名：`tps.page.boiltask.com`
+- 备用域名：`https://pixel-tps-demo.boiltask.workers.dev`
 - `compatibilityDate`：`2026-11-17`，`workersDev`: `true`
 - 自动化/CI 场景：用 `CLOUDFLARE_API_TOKEN` 代替交互式登录。
-- 部署后必须打开线上域名确认版本已更新，不能只看命令返回成功。
+
+### 部署后必须校验
+
+`cf deploy` 返回成功不等于线上已更新，按下面两步确认：
+
+1. 看输出里的 `Current Version ID` 已变化，且 `Uploaded ... assets` 中包含 `index.html`。
+2. 拉取线上 `index.html` 与本地做 SHA256 比对，必须完全一致：
+
+```powershell
+curl.exe -sS -m 60 --compressed -o "$env:TEMP\live.html" https://pixel-tps-demo.boiltask.workers.dev/
+(Get-FileHash "$env:TEMP\live.html").Hash -eq (Get-FileHash index.html).Hash   # 必须为 True
+```
+
+> **已知环境问题**：部分网络到 `tps.page.boiltask.com`（104.21.x / 172.67.x）吞吐极低甚至超时，
+> 但这是本机出口链路问题，不是部署失败。校验优先用 `workers.dev` 域名；自定义域名失败时
+> 换网络或用浏览器人工确认，不要误判为发布异常、更不要反复重发版本。
+
 
 ---
 
