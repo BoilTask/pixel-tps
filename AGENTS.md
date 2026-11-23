@@ -55,7 +55,7 @@ npx --yes serve C:\pixel-tps -l 4321
 
 ```
 C:\pixel-tps\
-├── index.html             # 全部实现：HTML + CSS + JS（单文件，约 4867 行）
+├── index.html             # 全部实现：HTML + CSS + JS（单文件，约 5214 行）
 ├── README.md              # 玩家向说明：操作表、验证内容、原型边界
 ├── cloudflare.config.ts   # Cloudflare Workers 部署配置（cf CLI 读取）
 ├── preview.png            # 桌面实际游玩画面（README 引用）
@@ -82,31 +82,41 @@ Select-String -Path index.html -Pattern '^\s*// -{3,}' -Encoding UTF8
 | 行 | 区块 | 职责 |
 |---:|---|---|
 | 9 | `<style>` | 全部 CSS（含 320 行的 touch/mobile 段） |
-| 527 | `<body>` | DOM：`#frame`、`#game`，菜单/暂停/结算、HUD、触屏控件、旋转提示 |
-| 636 | `<script>` | IIFE，`'use strict'`，全部逻辑作用域 |
-| 640 | 总注释 | 说明 384×216 + 最近邻 + 无外部资源 |
-| 708 | fullscreen | 全屏 API、`is-fullscreen` 状态、降级提示（Safari / 添加到主屏幕） |
-| 760 | math / colour | 数学、颜色、像素抖动辅助 |
-| 849 | bitmap font | 位图字体，HUD 文本渲染 |
-| 957 | sprites | 程序化像素精灵（角色、敌人、枪、道具） |
-| 1359 | audio | Web Audio 音效合成，需一次用户手势解锁 |
-| 1512 | world | 场景/掩体/世界数据 `WORLD` |
-| 1671 | game state | `game` 对象、波次、计分、玩家状态 |
-| 1764 | projection / camera | 越肩相机、肩部偏移、ADS 拉近、投影 `project()` |
-| 1937 | collision / rays | 碰撞、射线 `castWorldRay()`、视线检测 |
-| 2057 | effects | 弹着火花、tracer、屏幕震动、伤害数字 |
-| 2103 | shooting / enemies | 射击判定（hitscan / 爆头）、敌人 AI、弹丸、波次生成 |
-| 2767 | rendering: sky | 天空 |
-| 2943 | rendering: ground | 地面 |
-| 3177 | rendering: boxes | 掩体方块 |
-| 3367 | rendering: billboards / effects | billboard 精灵按深度排序、特效层 |
-| 3801 | HUD | 雷达、生命、弹药、波次、准星（4001 生命区 / 4038 计分区） |
-| 4182 | full-screen effects | CRT 扫描线、暗角、受击闪红 |
-| 4287 | main render | 单帧渲染总装 |
-| 4310 | UI / state | 状态机 `menu / playing / paused / gameover`、开始/暂停/结算切换 |
-| 4474 | input | 键鼠：WASD、左键、右键 ADS、Shift、R、Esc、M、Enter、指针锁定与右键拖动降级 |
-| 4574 | touch controls | 虚拟摇杆、右半屏滑动、FIRE/AIM/DASH/RELOAD/II，pointer capture |
-| 4811 | loop | `requestAnimationFrame` 主循环 + `window.SUNFALL` 调试句柄 |
+| 534 | `<body>` | DOM：`#frame`、`#game`，菜单/暂停/结算、HUD、触屏控件、旋转提示 |
+| 647 | `<script>` | IIFE，`'use strict'`，全部逻辑作用域 |
+| 651 | 总注释 | 说明 384×216 + 最近邻 + 无外部资源 |
+| 719 | fullscreen | 全屏 API、`is-fullscreen` 状态、降级提示（Safari / 添加到主屏幕） |
+| 771 | math / colour | 数学、颜色、像素抖动辅助 |
+| 860 | bitmap font | 位图字体，HUD 文本渲染 |
+| 968 | sprites | 程序化像素精灵（角色含空中收腿帧、敌人、枪、道具） |
+| 1372 | audio | Web Audio 音效合成，需一次用户手势解锁 |
+| 1537 | world | 场景/掩体/世界数据 `WORLD`；含货台、楼梯、集装箱攀爬路线 |
+| 1722 | game state | `game` 对象、波次、计分、玩家状态（`y/vy/grounded/climb`） |
+| 1819 | projection / camera | 越肩相机、肩部偏移、ADS 拉近、垂直阻尼跟随、投影 `project()` |
+| 2000 | collision / rays | 高度感知碰撞（`bodyBlocked` / `surfaceBelow`）、射线 `castWorldRay()`、视线检测 |
+| 2170 | effects | 弹着火花、tracer、屏幕震动、伤害数字 |
+| 2216 | shooting / enemies | 射击判定（hitscan / 爆头）、跳跃/攀爬入口、敌人 AI、弹丸、波次生成 |
+| 3074 | rendering: sky | 天空 |
+| 3250 | rendering: ground | 地面、投影阴影（按脚下支撑面） |
+| 3487 | rendering: boxes | 掩体方块（含 `deck` 货台样式与细节） |
+| 3692 | rendering: billboards / effects | billboard 精灵按深度排序、特效层 |
+| 4128 | HUD | 雷达、生命、弹药、波次、准星与攀爬提示（4333 生命区 / 4370 计分区） |
+| 4514 | full-screen effects | CRT 扫描线、暗角、受击闪红 |
+| 4619 | main render | 单帧渲染总装 |
+| 4642 | UI / state | 状态机 `menu / playing / paused / gameover`、开始/暂停/结算切换 |
+| 4808 | input | 键鼠：WASD、左键、右键 ADS、Space 跳跃/攀爬、Shift、R、Esc、M、Enter、指针锁定与右键拖动降级 |
+| 4911 | touch controls | 虚拟摇杆、右半屏滑动、FIRE/AIM/JUMP/DASH/RELOAD/II，pointer capture |
+| 5157 | loop | `requestAnimationFrame` 主循环 + `window.SUNFALL` 调试句柄 |
+
+### 垂直移动契约
+
+改地形/移动前先看这一段，否则很容易做出"人卡在台子里"的 bug：
+
+- 玩家是**圆柱 + 脚底高度**：`p.y` 是脚底，身高 `BODY_H = 1.72`。所有落地判定都走 `surfaceBelow(x, z, maxY)`。
+- 水平碰撞走 `resolveCircle(ent, r, feetY, stepUp)`：与身体区间不重叠的方块不再推人，所以站在箱顶上不会再被同一个箱子弹开。
+- `STEP_UP = 0.34` 是自动上台阶上限（楼梯踏步按 0.28–0.3 设计）；`STEP_DOWN = 0.42` 以内走下台阶不进入下落状态。
+- `CLIMB_REACH = 2.05` 是可攀爬的台沿高度；`buildWorld()` 里 `climbable` 由 `type !== 'wall'` 决定，**外围墙永远不可攀爬**（它是场地边界）。
+- 敌人不参与这套系统（`y` 恒为 0、不传 feetY），所以只能在地面绕行；新增抬高的可站立平台时记得别把敌人出生点放上去（`findSpawn` 已按 `surfaceBelow` 过滤）。
 
 ### 自动化调试句柄
 
@@ -116,7 +126,8 @@ Select-String -Path index.html -Pattern '^\s*// -{3,}' -Encoding UTF8
 SUNFALL.start()          // 进入 playing
 SUNFALL.state()           // 'menu' | 'playing' | 'paused' | 'gameover'
 SUNFALL.pause(); SUNFALL.resume(); SUNFALL.endGame()
-SUNFALL.castWorldRay(...); SUNFALL.project(...)
+SUNFALL.castWorldRay(...); SUNFALL.project(...); SUNFALL.surfaceBelow(...)
+SUNFALL.jump(); SUNFALL.mantle()   // 手动触发跳跃 / 攀爬探测
 // 另外暴露：game, cam, WORLD, SPRITES, sound
 ```
 
@@ -159,8 +170,9 @@ SUNFALL.castWorldRay(...); SUNFALL.project(...)
 提交前至少完成以下项，并把结论写进 commit body 或 PR 描述：
 
 - [ ] 页面加载无 console 报错（含未捕获异常、资源 404）
-- [ ] `?desktop=1`：WASD 移动、鼠标转向、左键连发、右键 ADS、Shift 冲刺、R 换弹、Esc 暂停、M 静音、Enter 快速开始
-- [ ] `?touch=1`：虚拟摇杆移动、右半屏滑动转向、FIRE 按住连发且可滑动瞄准、AIM / DASH / RELOAD / II 全部生效
+- [ ] `?desktop=1`：WASD 移动、鼠标转向、左键连发、右键 ADS、Shift 冲刺、Space 跳跃、R 换弹、Esc 暂停、M 静音、Enter 快速开始
+- [ ] `?touch=1`：虚拟摇杆移动、右半屏滑动转向、FIRE 按住连发且可滑动瞄准、AIM / JUMP / DASH / RELOAD / II 全部生效
+- [ ] 立体地形：走楼梯上货台（0.3→0.6→0.9→1.2→1.5）、贴台沿按跳跃能翻上去、矮箱→集装箱两段攀爬、从台面走落/跳落回地面不卡住
 - [ ] 状态机完整走通：`menu → playing → paused → playing`，以及死亡 `→ gameover →` 重开
 - [ ] 波次推进、击杀计分、换弹、冲刺无敌帧、生命归零结算均符合预期
 - [ ] 竖屏显示旋转提示（ROTATE TO PLAY）
@@ -251,10 +263,12 @@ git push -u origin feat/xxx
 这些是**已知且被接受**的取舍，修它们属于新需求，不属于 bug：
 
 - 角色与敌人是 billboard 精灵，遮挡按深度排序近似，近距离会有穿插。
-- 掩体绕行是方向采样，不是导航网格，复杂地形会卡住。
+- 掩体绕行是方向采样，不是导航网格，复杂地形会卡住；**敌人不会攀爬也不会跳**，玩家上高台后它们只在地面绕。
+- 攀爬是固定时长的一次性翻越动画：没有悬挂、横向挪移、蹬墙跳或墙跑；空中只有一段跳。
+- 只有玩家有垂直移动；敌人与弹丸的落点仍按地面高度近似（弹丸会被台面阻挡，但不会停在台面上滚动）。
 - 触屏准星只有轻微辅助吸附，不是自动瞄准。
 - 旧版 iOS Safari 的指针捕获/手势可能冲突，需要真机复测。
-- 没有跳跃、武器切换、存档、联网、性能分级。
+- 没有蹲伏、武器切换、存档、联网、性能分级。
 - 音频必须由一次用户手势启动（浏览器策略）。
 
 ---
@@ -264,7 +278,7 @@ git push -u origin feat/xxx
 按优先级排列，动手前先在 issue 或提交里说明取舍：
 
 1. **性能分级**：低端机降低粒子/后处理密度（目标：稳定 60fps）。
-2. **敌人寻路**：方向采样升级为轻量流场或路点图。
+2. **敌人寻路**：方向采样升级为轻量流场或路点图，并让敌人能上/绕开货台（当前它们只会在地面打转）。
 3. **武器多样性**：第二把武器 + 切换键位表（需同步 README）。
 4. **真机回归**：iOS Safari / Android Chrome 触屏手势实测记录。
 5. **CI 冒烟**：用 headless 浏览器 + `window.SUNFALL` 跑状态机断言。
