@@ -1002,27 +1002,29 @@
       const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 
       // legs
-      let lx = 9, rx = 16, ly = 29, ry = 29, lb = 0, rb = 0;
+      let lx = 9, rx = 16, ly = 29, ry = 29, lb = 0, rb = 0, lh = 15, rh = 15;
       if (frame === 1) { lx = 8; rx = 17; ly = 30; ry = 31; rb = -1; }
       if (frame === 3) { lx = 10; rx = 15; ly = 31; ry = 29; lb = 1; }
+      // frame 4 = airborne: knees tucked, boots pulled up off the ground line
+      if (frame === 4) { lx = 7; rx = 18; ly = 29; ry = 26; lh = 8; rh = 11; lb = -1; rb = 0; }
       // left leg
-      px(lx - 1, ly, 5, 15, O);
-      px(lx, ly + 1, 3, 10, dk);
-      px(lx + 1, ly + 1, 1, 7, teal);
-      px(lx - 1, ly + 8, 5, 3, O);
-      px(lx, ly + 9, 3, 2, '#3f5b5b');
-      px(lx, ly + 11, 3, 3, boot);
-      px(lx - 1, ly + 13 + lb, 5, 3, O);
-      px(lx, ly + 13 + lb, 4, 1, '#596863');
+      px(lx - 1, ly, 5, lh, O);
+      px(lx, ly + 1, 3, Math.max(4, lh - 5), dk);
+      px(lx + 1, ly + 1, 1, Math.max(3, lh - 8), teal);
+      px(lx - 1, ly + lh - 7, 5, 3, O);
+      px(lx, ly + lh - 6, 3, 2, '#3f5b5b');
+      px(lx, ly + lh - 4, 3, 3, boot);
+      px(lx - 1, ly + lh - 2 + lb, 5, 3, O);
+      px(lx, ly + lh - 2 + lb, 4, 1, '#596863');
       // right leg
-      px(rx - 1, ry, 5, 15, O);
-      px(rx, ry + 1, 3, 10, dk);
-      px(rx + 2, ry + 2, 1, 5, mid);
-      px(rx - 1, ry + 8, 5, 3, O);
-      px(rx, ry + 9, 3, 2, '#3f5b5b');
-      px(rx, ry + 11, 3, 3, boot);
-      px(rx - 1, ry + 13 + rb, 5, 3, O);
-      px(rx + 1, ry + 13 + rb, 4, 1, '#596863');
+      px(rx - 1, ry, 5, rh, O);
+      px(rx, ry + 1, 3, Math.max(4, rh - 5), dk);
+      px(rx + 2, ry + 2, 1, Math.max(3, rh - 10), mid);
+      px(rx - 1, ry + rh - 7, 5, 3, O);
+      px(rx, ry + rh - 6, 3, 2, '#3f5b5b');
+      px(rx, ry + rh - 4, 3, 3, boot);
+      px(rx - 1, ry + rh - 2 + rb, 5, 3, O);
+      px(rx + 1, ry + rh - 2 + rb, 4, 1, '#596863');
 
       // hip / belt
       px(8, 26, 13, 4, O);
@@ -1341,7 +1343,7 @@
   }
 
   const SPRITES = {
-    player: [0,1,2,3].map(playerFrame),
+    player: [0,1,2,3,4].map(playerFrame),
     grunt: spriteSet([0,1,2,3].map(gruntFrame), '#ffd9e7'),
     brute: spriteSet([0,1,2,3].map(bruteFrame), '#ffd0b5'),
     flash: [muzzleFlashFrame(0), muzzleFlashFrame(1)],
@@ -1938,12 +1940,20 @@
     const shakeAmt = game.shake;
     const shYaw = (Math.sin(game.time * 77) * 0.0018 + Math.sin(game.time * 113 + 1.3) * 0.0008) * shakeAmt;
     const shPitch = (Math.cos(game.time * 91 + 0.4) * 0.0016 + Math.sin(game.time * 57) * 0.0007) * shakeAmt;
-    const fovDeg = lerp(60, 52, p.ads) + (p.dashTime > 0 ? 4 : 0);
+    const fovDeg = lerp(60, 52, p.ads) + (p.dashTime > 0 ? 4 : 0)
+      + clamp(-p.vy, 0, 9) * 0.38 + (p.grounded ? 0 : 1.1);
     setBasis(p.yaw + shYaw + game.recoilYaw, clamp(p.pitch - game.recoil + shPitch, -0.55, 0.78), fovDeg * Math.PI / 180);
 
     const dist = lerp(4.35, 4.05, p.ads);
     const shoulder = lerp(0.92, 1.1, p.ads);
-    const pivot = { x: p.x, y: 1.52 + bob, z: p.z };
+    // The pivot follows the feet, but with a slower rate in the air so a jump
+    // reads as the character rising inside the frame instead of the world sliding.
+    const pivotTargetY = p.y + 1.52 + bob;
+    if (!Number.isFinite(game.camPivotY)) game.camPivotY = pivotTargetY;
+    const followRate = p.climb ? 22 : (p.grounded ? 16 : (p.vy > 0 ? 3.1 : 6.5));
+    game.camPivotY = lerp(game.camPivotY, pivotTargetY, 1 - Math.exp(-followRate * dt));
+    game.camDip = lerp(game.camDip || 0, 0, 1 - Math.exp(-7.5 * dt));
+    const pivot = { x: p.x, y: game.camPivotY + game.camDip, z: p.z };
     let desired = {
       x: pivot.x - cam.F.x * dist + cam.R.x * shoulder,
       y: pivot.y - cam.F.y * dist + cam.R.y * shoulder + 0.06,
@@ -3694,20 +3704,22 @@
     const p = game.player;
     if (!p.alive && game.state !== 'menu' && game.state !== 'gameover') return;
     if (!p.alive) return;
-    const spr = SPRITES.player[Math.floor(p.animPhase) % 4];
-    const depth = depthAt({ x: p.x, y: 0.9, z: p.z });
+    const airborne = !!p.climb || !p.grounded;
+    const spr = SPRITES.player[airborne ? 4 : (Math.floor(p.animPhase) % 4)];
+    const squash = airborne ? 1.03 : p.squash;
+    const depth = depthAt({ x: p.x, y: p.y + 0.9, z: p.z });
     if (depth <= NEAR) return;
-    const camDist = Math.hypot(cam.x - p.x, cam.y - 1.3, cam.z - p.z);
+    const camDist = Math.hypot(cam.x - p.x, cam.y - (p.y + 1.3), cam.z - p.z);
     const alpha = p.flash > 0 ? 0.55 : clamp((camDist - 1.2) / 1.0, 0.25, 1);
     items.push({
       depth,
       draw() {
-        drawBillboard(spr, p.x, 0, p.z, 1.8, { alpha });
+        drawBillboard(spr, p.x, p.y, p.z, 1.8 * squash, { alpha });
         if (p.flash > 0) {
           ctx.save();
           ctx.globalAlpha = 0.3;
           ctx.globalCompositeOperation = 'lighter';
-          drawBillboard(SPRITES.player[0], p.x, 0, p.z, 1.8, { alpha: 0.16 });
+          drawBillboard(spr, p.x, p.y, p.z, 1.8 * squash, { alpha: 0.16 });
           ctx.restore();
         }
       }
